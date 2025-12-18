@@ -15,6 +15,8 @@ type Translator struct {
 	cache         TranslationCache
 	excludedTerms []string
 	context       string
+	glossary      map[string]string
+	style         TranslationStyle
 	processors    map[string]ContentProcessor
 }
 
@@ -31,6 +33,8 @@ type TranslateRequest struct {
 	ExcludedTerms []string
 	Context       string
 	TextContexts  []string
+	Glossary      map[string]string
+	Style         TranslationStyle
 }
 
 // TranslationCache is the interface for translation caching.
@@ -77,6 +81,20 @@ func WithContext(ctx string) TranslatorOption {
 	}
 }
 
+// WithGlossary sets preferred translations for specific phrases.
+func WithGlossary(glossary map[string]string) TranslatorOption {
+	return func(t *Translator) {
+		t.glossary = glossary
+	}
+}
+
+// WithStyle sets the translation style/register.
+func WithStyle(style TranslationStyle) TranslatorOption {
+	return func(t *Translator) {
+		t.style = style
+	}
+}
+
 // WithProcessor registers a content processor.
 func WithProcessor(processor ContentProcessor) TranslatorOption {
 	return func(t *Translator) {
@@ -90,6 +108,7 @@ func NewTranslator(targetLang string, provider AIProvider, opts ...TranslatorOpt
 		targetLang: targetLang,
 		sourceLang: "en",
 		provider:   provider,
+		style:      StyleNeutral,
 		processors: make(map[string]ContentProcessor),
 	}
 
@@ -209,6 +228,8 @@ func (t *Translator) translateBatch(ctx context.Context, nodes []TextNode) (map[
 			ExcludedTerms: t.excludedTerms,
 			Context:       t.context,
 			TextContexts:  textContexts,
+			Glossary:      t.glossary,
+			Style:         t.style,
 		})
 		if err != nil {
 			return nil, 0, 0, err
@@ -268,4 +289,61 @@ func (t *Translator) TargetLang() string {
 // SourceLang returns the source language.
 func (t *Translator) SourceLang() string {
 	return t.sourceLang
+}
+
+// IsSourceLang checks if the target language matches the source language.
+// When true, translation can be bypassed.
+func (t *Translator) IsSourceLang(targetLangOverride ...string) bool {
+	targetLang := t.targetLang
+	if len(targetLangOverride) > 0 && targetLangOverride[0] != "" {
+		targetLang = targetLangOverride[0]
+	}
+	return t.isSourceLang() || normalizeBaseLang(targetLang) == normalizeBaseLang(t.sourceLang)
+}
+
+// IsRTL returns true if the target language uses right-to-left text direction.
+func (t *Translator) IsRTL(targetLangOverride ...string) bool {
+	targetLang := t.targetLang
+	if len(targetLangOverride) > 0 && targetLangOverride[0] != "" {
+		targetLang = targetLangOverride[0]
+	}
+	return IsRTL(targetLang)
+}
+
+// GetDir returns the text direction for the target language ("ltr" or "rtl").
+func (t *Translator) GetDir(targetLangOverride ...string) string {
+	targetLang := t.targetLang
+	if len(targetLangOverride) > 0 && targetLangOverride[0] != "" {
+		targetLang = targetLangOverride[0]
+	}
+	return GetDirection(targetLang)
+}
+
+// Glossary returns the glossary of preferred translations.
+func (t *Translator) Glossary() map[string]string {
+	return t.glossary
+}
+
+// Style returns the translation style.
+func (t *Translator) Style() TranslationStyle {
+	return t.style
+}
+
+// Context returns the global translation context.
+func (t *Translator) Context() string {
+	return t.context
+}
+
+// ExcludedTerms returns the list of excluded terms.
+func (t *Translator) ExcludedTerms() []string {
+	return t.excludedTerms
+}
+
+// normalizeBaseLang extracts the base language code (e.g., "en" from "en_US").
+func normalizeBaseLang(lang string) string {
+	parts := strings.Split(lang, "_")
+	if len(parts) > 0 {
+		return strings.ToLower(parts[0])
+	}
+	return strings.ToLower(lang)
 }

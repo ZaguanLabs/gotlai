@@ -325,3 +325,88 @@ func TestTranslator_IsSourceLang(t *testing.T) {
 		}
 	}
 }
+
+func TestTranslator_GlossaryAndStyle(t *testing.T) {
+	provider := newMockProvider()
+
+	glossary := map[string]string{
+		"on the fly":   "fortløpende",
+		"cutting-edge": "banebrytende",
+	}
+
+	translator := NewTranslator("nb_NO", provider,
+		WithGlossary(glossary),
+		WithStyle(StyleMarketing),
+		WithContext("Marketing website"),
+	)
+
+	if translator.Style() != StyleMarketing {
+		t.Errorf("Expected style StyleMarketing, got %q", translator.Style())
+	}
+
+	if translator.Context() != "Marketing website" {
+		t.Errorf("Expected context 'Marketing website', got %q", translator.Context())
+	}
+
+	g := translator.Glossary()
+	if g == nil {
+		t.Fatal("Glossary should not be nil")
+	}
+	if g["on the fly"] != "fortløpende" {
+		t.Errorf("Glossary entry 'on the fly' = %q, want 'fortløpende'", g["on the fly"])
+	}
+}
+
+func TestTranslator_IsRTL(t *testing.T) {
+	provider := newMockProvider()
+
+	// Test Arabic (RTL)
+	translator := NewTranslator("ar_SA", provider)
+	if !translator.IsRTL() {
+		t.Error("IsRTL() should return true for ar_SA")
+	}
+	if translator.GetDir() != "rtl" {
+		t.Errorf("GetDir() should return 'rtl' for ar_SA, got %q", translator.GetDir())
+	}
+
+	// Test Spanish (LTR)
+	translator = NewTranslator("es_ES", provider)
+	if translator.IsRTL() {
+		t.Error("IsRTL() should return false for es_ES")
+	}
+	if translator.GetDir() != "ltr" {
+		t.Errorf("GetDir() should return 'ltr' for es_ES, got %q", translator.GetDir())
+	}
+
+	// Test with override
+	translator = NewTranslator("es_ES", provider)
+	if !translator.IsRTL("he_IL") {
+		t.Error("IsRTL('he_IL') should return true even when target is es_ES")
+	}
+}
+
+func TestTranslator_ExcludedTerms(t *testing.T) {
+	provider := newMockProvider()
+
+	translator := NewTranslator("es_ES", provider,
+		WithExcludedTerms([]string{"API", "SDK", "OAuth"}),
+	)
+
+	terms := translator.ExcludedTerms()
+	if len(terms) != 3 {
+		t.Errorf("Expected 3 excluded terms, got %d", len(terms))
+	}
+	if terms[0] != "API" || terms[1] != "SDK" || terms[2] != "OAuth" {
+		t.Errorf("Unexpected excluded terms: %v", terms)
+	}
+}
+
+func TestTranslator_DefaultStyle(t *testing.T) {
+	provider := newMockProvider()
+
+	translator := NewTranslator("es_ES", provider)
+
+	if translator.Style() != StyleNeutral {
+		t.Errorf("Default style should be StyleNeutral, got %q", translator.Style())
+	}
+}

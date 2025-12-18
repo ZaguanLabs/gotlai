@@ -97,3 +97,108 @@ func TestToHTMLLang(t *testing.T) {
 		})
 	}
 }
+
+func TestGetLocaleClarification(t *testing.T) {
+	tests := []struct {
+		code     string
+		contains string
+	}{
+		{"nb_NO", "Bokmål"},
+		{"nb", "Bokmål"},
+		{"zh_CN", "Simplified"},
+		{"zh_TW", "Traditional"},
+		{"pt_BR", "Brazilian"},
+		{"pt_PT", "European"},
+		{"en_GB", "British"},
+		{"es_ES", "Castilian"},
+		{"es_MX", "Mexican"},
+		{"unknown", ""}, // no clarification
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.code, func(t *testing.T) {
+			result := GetLocaleClarification(tt.code)
+			if tt.contains == "" {
+				if result != "" {
+					t.Errorf("GetLocaleClarification(%q) = %q, want empty", tt.code, result)
+				}
+			} else if result == "" || !contains(result, tt.contains) {
+				t.Errorf("GetLocaleClarification(%q) = %q, want to contain %q", tt.code, result, tt.contains)
+			}
+		})
+	}
+}
+
+func TestGetStyleDescription(t *testing.T) {
+	tests := []struct {
+		style    TranslationStyle
+		contains string
+	}{
+		{StyleFormal, "formal"},
+		{StyleNeutral, "neutral"},
+		{StyleCasual, "casual"},
+		{StyleMarketing, "persuasive"},
+		{StyleTechnical, "technical"},
+		{"", "neutral"}, // default to neutral
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.style), func(t *testing.T) {
+			result := GetStyleDescription(tt.style)
+			if !contains(result, tt.contains) {
+				t.Errorf("GetStyleDescription(%q) = %q, want to contain %q", tt.style, result, tt.contains)
+			}
+		})
+	}
+}
+
+func TestShortCodeToLocale_Comprehensive(t *testing.T) {
+	// Test that common short codes resolve correctly
+	tests := []struct {
+		short string
+		full  string
+	}{
+		{"en", "en_US"},
+		{"gb", "en_GB"},
+		{"de", "de_DE"},
+		{"es", "es_ES"},
+		{"mx", "es_MX"},
+		{"fr", "fr_FR"},
+		{"ja", "ja_JP"},
+		{"jp", "ja_JP"},
+		{"zh", "zh_CN"},
+		{"tw", "zh_TW"},
+		{"nb", "nb_NO"},
+		{"no", "nb_NO"},
+		{"pt", "pt_BR"},
+		{"br", "pt_BR"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.short, func(t *testing.T) {
+			result, ok := ShortCodeToLocale[tt.short]
+			if !ok {
+				t.Errorf("ShortCodeToLocale[%q] not found", tt.short)
+				return
+			}
+			if result != tt.full {
+				t.Errorf("ShortCodeToLocale[%q] = %q, want %q", tt.short, result, tt.full)
+			}
+		})
+	}
+}
+
+// Helper function for string contains check
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
+		(len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)))
+}
+
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}

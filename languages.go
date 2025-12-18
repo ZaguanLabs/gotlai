@@ -59,23 +59,82 @@ var LanguageNames = map[string]string{
 
 // ShortCodeToLocale maps short language codes to full locale codes.
 var ShortCodeToLocale = map[string]string{
+	// Tier 1 Languages
 	"en": "en_US",
+	"gb": "en_GB", // Great Britain -> British English
+	"uk": "en_GB", // UK (country code) -> British English
 	"de": "de_DE",
 	"es": "es_ES",
+	"mx": "es_MX", // Mexico -> Mexican Spanish
 	"fr": "fr_FR",
 	"it": "it_IT",
 	"ja": "ja_JP",
+	"jp": "ja_JP", // Japan (country code) -> Japanese
 	"pt": "pt_BR",
+	"br": "pt_BR", // Brazil (country code) -> Brazilian Portuguese
 	"zh": "zh_CN",
-	"ko": "ko_KR",
-	"ru": "ru_RU",
+	"cn": "zh_CN", // China (country code) -> Simplified Chinese
+	"tw": "zh_TW", // Taiwan -> Traditional Chinese
+	"hk": "zh_TW", // Hong Kong -> Traditional Chinese
+
+	// Tier 2 Languages
 	"ar": "ar_SA",
+	"sa": "ar_SA", // Saudi Arabia (country code) -> Arabic
+	"bn": "bn_BD",
+	"bd": "bn_BD", // Bangladesh (country code) -> Bengali
+	"cs": "cs_CZ",
+	"cz": "cs_CZ", // Czech Republic (country code) -> Czech
+	"da": "da_DK",
+	"dk": "da_DK", // Denmark (country code) -> Danish
+	"el": "el_GR",
+	"gr": "el_GR", // Greece (country code) -> Greek
+	"fi": "fi_FI",
 	"he": "he_IL",
+	"il": "he_IL", // Israel (country code) -> Hebrew
+	"iw": "he_IL", // Legacy Hebrew code -> Hebrew
 	"hi": "hi_IN",
+	"in": "hi_IN", // India (country code) -> Hindi
+	"hu": "hu_HU",
+	"id": "id_ID",
+	"ko": "ko_KR",
+	"kr": "ko_KR", // South Korea (country code) -> Korean
 	"nl": "nl_NL",
+	"nb": "nb_NO",
+	"no": "nb_NO", // Norwegian -> Bokmål
+	"nn": "nb_NO", // Nynorsk -> Bokmål (closest supported)
 	"pl": "pl_PL",
+	"ro": "ro_RO",
+	"ru": "ru_RU",
+	"sv": "sv_SE",
+	"se": "sv_SE", // Sweden (country code) -> Swedish
+	"th": "th_TH",
 	"tr": "tr_TR",
+	"ua": "uk_UA", // Ukraine (country code) -> Ukrainian
 	"vi": "vi_VN",
+	"vn": "vi_VN", // Vietnam (country code) -> Vietnamese
+
+	// Tier 3 Languages
+	"bg":  "bg_BG",
+	"ca":  "ca_ES",
+	"fa":  "fa_IR",
+	"ir":  "fa_IR", // Iran (country code) -> Persian
+	"hr":  "hr_HR",
+	"lt":  "lt_LT",
+	"lv":  "lv_LV",
+	"ms":  "ms_MY",
+	"my":  "ms_MY", // Malaysia (country code) -> Malay
+	"sk":  "sk_SK",
+	"sl":  "sl_SI",
+	"si":  "sl_SI", // Slovenia (country code) -> Slovenian
+	"sr":  "sr_RS",
+	"rs":  "sr_RS", // Serbia (country code) -> Serbian
+	"sw":  "sw_KE",
+	"ke":  "sw_KE", // Kenya (country code) -> Swahili
+	"tl":  "tl_PH",
+	"fil": "tl_PH", // Filipino -> Tagalog
+	"ph":  "tl_PH", // Philippines (country code) -> Tagalog
+	"ur":  "ur_PK",
+	"pk":  "ur_PK", // Pakistan (country code) -> Urdu
 }
 
 // GetLanguageName returns the human-readable name for a language code.
@@ -118,4 +177,59 @@ func NormalizeLocale(langCode string) string {
 // ToHTMLLang converts a locale code to HTML lang attribute format (e.g., "es_ES" → "es-ES").
 func ToHTMLLang(langCode string) string {
 	return strings.ReplaceAll(langCode, "_", "-")
+}
+
+// LocaleClarifications provides language-specific hints for the AI model.
+// Helps the model understand which variant to use.
+var LocaleClarifications = map[string]string{
+	// Norwegian variants
+	"nb_NO": "Use Norwegian Bokmål (nb-NO), not Nynorsk.",
+	"nb":    "Use Norwegian Bokmål (nb-NO), not Nynorsk.",
+	"no":    "Use Norwegian Bokmål (nb-NO).",
+	"nn_NO": "Use Norwegian Nynorsk (nn-NO), not Bokmål.",
+	"nn":    "Use Norwegian Nynorsk (nn-NO), not Bokmål.",
+	// Chinese variants
+	"zh_CN": "Use Simplified Chinese characters.",
+	"zh_TW": "Use Traditional Chinese characters.",
+	"zh":    "Use Simplified Chinese characters.",
+	// Portuguese variants
+	"pt_BR": "Use Brazilian Portuguese conventions.",
+	"pt_PT": "Use European Portuguese conventions.",
+	"pt":    "Use Brazilian Portuguese conventions.",
+	// English variants
+	"en_GB": "Use British English spelling and conventions.",
+	"en_US": "Use American English spelling and conventions.",
+	// Spanish variants
+	"es_ES": "Use Castilian Spanish (Spain) conventions.",
+	"es_MX": "Use Mexican Spanish conventions.",
+}
+
+// StyleDescriptions maps TranslationStyle to human-readable descriptions for AI prompts.
+var StyleDescriptions = map[TranslationStyle]string{
+	StyleFormal:    "Use formal, professional language suitable for official documents or business communication.",
+	StyleNeutral:   "Use a neutral, professional tone suitable for general web content and documentation.",
+	StyleCasual:    "Use casual, conversational language suitable for blogs, social media, or friendly communication.",
+	StyleMarketing: "Use persuasive, engaging language suitable for marketing copy, landing pages, and promotional content.",
+	StyleTechnical: "Use precise, technical language suitable for developer documentation, API references, and technical guides.",
+}
+
+// GetLocaleClarification returns the locale-specific hint for a language code.
+func GetLocaleClarification(langCode string) string {
+	if hint, ok := LocaleClarifications[langCode]; ok {
+		return hint
+	}
+	// Try normalized version
+	normalized := NormalizeLocale(langCode)
+	if hint, ok := LocaleClarifications[normalized]; ok {
+		return hint
+	}
+	return ""
+}
+
+// GetStyleDescription returns the description for a translation style.
+func GetStyleDescription(style TranslationStyle) string {
+	if desc, ok := StyleDescriptions[style]; ok {
+		return desc
+	}
+	return StyleDescriptions[StyleNeutral]
 }

@@ -22,14 +22,48 @@ func TestBuildSystemPrompt(t *testing.T) {
 	if !strings.Contains(prompt, "Spanish (Spain)") {
 		t.Error("Prompt should contain target language name")
 	}
-	if !strings.Contains(prompt, "English") {
-		t.Error("Prompt should contain source language name")
-	}
 	if !strings.Contains(prompt, "E-commerce website") {
 		t.Error("Prompt should contain context")
 	}
 	if !strings.Contains(prompt, "API") || !strings.Contains(prompt, "SDK") {
 		t.Error("Prompt should contain excluded terms")
+	}
+	if !strings.Contains(prompt, "Castilian Spanish") {
+		t.Error("Prompt should contain locale clarification for es_ES")
+	}
+}
+
+func TestBuildSystemPrompt_WithGlossaryAndStyle(t *testing.T) {
+	p := NewOpenAIProvider(OpenAIConfig{APIKey: "test"})
+
+	req := TranslateRequest{
+		TargetLang: "nb_NO",
+		SourceLang: "en",
+		Glossary: map[string]string{
+			"on the fly":   "fortløpende",
+			"cutting-edge": "banebrytende",
+		},
+		Style: "marketing",
+	}
+
+	prompt := p.buildSystemPrompt(req)
+
+	// Check glossary is included
+	if !strings.Contains(prompt, "on the fly") {
+		t.Error("Prompt should contain glossary source term")
+	}
+	if !strings.Contains(prompt, "fortløpende") {
+		t.Error("Prompt should contain glossary target term")
+	}
+
+	// Check style description is included
+	if !strings.Contains(prompt, "persuasive") {
+		t.Error("Prompt should contain marketing style description")
+	}
+
+	// Check locale clarification for Norwegian
+	if !strings.Contains(prompt, "Bokmål") {
+		t.Error("Prompt should contain Norwegian locale clarification")
 	}
 }
 

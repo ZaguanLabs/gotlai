@@ -99,39 +99,68 @@ func (p *OpenAIProvider) buildSystemPrompt(req TranslateRequest) string {
 	}
 
 	targetName := gotlai.GetLanguageName(req.TargetLang)
-	sourceName := gotlai.GetLanguageName(sourceLang)
+	localeHint := gotlai.GetLocaleClarification(req.TargetLang)
 
-	contextText := req.Context
-	if contextText == "" {
-		contextText = "General web or application content."
+	// Get style description (default to neutral)
+	styleDesc := gotlai.GetStyleDescription(req.Style)
+
+	// Build context section
+	contextText := "The content is general web content."
+	if req.Context != "" {
+		contextText = fmt.Sprintf("The content is for: %s. Adapt the tone to be appropriate for this context.", req.Context)
 	}
 
 	prompt := fmt.Sprintf(`# Role
-You are an expert native translator. Translate from %s to %s.
+You are an expert native translator. You translate content to %s with the fluency and nuance of a highly educated native speaker.
 
 # Context
 %s
 
+# Register
+%s
+
+# Task
+Translate the provided texts into idiomatic %s.
+
 # Style Guide
-- Natural flow: Avoid literal translations
-- Vocabulary: Use culturally relevant terminology
-- Disambiguation: Use provided context to choose correct translation
-  - "Run" in <button> → action verb (execute)
-  - "Run" in sports → physical running
-- HTML Safety: Do NOT translate tags, classes, IDs
-- Variables: Do NOT translate {{name}}, {count}, %%s, etc.
+- **Natural Flow**: Avoid literal translations. Rephrase sentences to sound completely natural to a native speaker.
+- **Vocabulary**: Use precise, culturally relevant terminology. Avoid awkward "translationese" or robotic phrasing.
+- **Tone**: Maintain the original intent but adapt the wording to fit the target culture's expectations.
+- **Idioms**: Never translate idioms literally. Replace English idioms with natural %s equivalents.
+- **HTML/Code Safety**: Do NOT translate HTML tags, class names, IDs, attributes, URLs, email addresses, or content inside backticks or <code> blocks.
+- **Interpolation**: Do NOT translate variables or placeholders (e.g., {{name}}, {count}, %%s, $1).
+- **Formatting**: Preserve meaningful whitespace (leading/trailing spaces, multiple spaces, newlines). Use idiomatic punctuation for the target language.
+- **Context Hints**: If you see {{__ctx__:...}}, use that hint to disambiguate the translation, then REMOVE the hint from your output.`, targetName, contextText, styleDesc, targetName, targetName)
 
-# Input Format
-Either:
-1. Array: ["text1", "text2"]
-2. Object: {"items": [{"text": "Run", "context": "in <button>"}]}
+	// Add locale clarification if available
+	if localeHint != "" {
+		prompt += fmt.Sprintf("\n- **Locale**: %s", localeHint)
+	}
 
-# Output Format
-Return ONLY: {"translations": ["translated1", "translated2"]}`, sourceName, targetName, contextText)
+	// Add user-provided glossary if available
+	if len(req.Glossary) > 0 {
+		prompt += "\n\n# Glossary\nWhen you encounter these phrases, prefer these translations (unless context demands otherwise):"
+		for source, target := range req.Glossary {
+			prompt += fmt.Sprintf("\n- \"%s\" → %s", source, target)
+		}
+	}
 
+	// Add quality check instruction
+	prompt += fmt.Sprintf("\n\n# Quality Check\nAfter translating each string, verify it sounds like native %s and not a calque. If any phrase sounds like a literal translation, rewrite it naturally.", targetName)
+
+	// Add format requirements
+	prompt += `
+
+# Format
+Return a valid JSON object with a single key "translations" containing an array of strings in the exact same order as the input.
+Example: { "translations": ["translated string 1", "translated string 2"] }
+- Do NOT wrap in Markdown code blocks.
+- Do NOT include any {{__ctx__:...}} markers in your output.`
+
+	// Add exclusions if provided
 	if len(req.ExcludedTerms) > 0 {
 		terms := strings.Join(req.ExcludedTerms, "\n- ")
-		prompt += fmt.Sprintf("\n\n# Exclusions\nDo NOT translate:\n- %s", terms)
+		prompt += fmt.Sprintf("\n\n# Exclusions\nDo NOT translate the following terms. Keep them exactly as they appear in the source:\n- %s", terms)
 	}
 
 	return prompt

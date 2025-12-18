@@ -13,7 +13,7 @@ const (
 
 	// Version is the semantic version of the application.
 	// Override at build time with ldflags for releases.
-	Version = "0.1.0"
+	Version = "1.0.0"
 
 	// Repository is the source code repository URL.
 	Repository = "https://github.com/ZaguanLabs/gotlai"

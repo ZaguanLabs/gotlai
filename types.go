@@ -1,6 +1,22 @@
 // Package gotlai provides an AI-powered HTML translation engine.
 package gotlai
 
+// TranslationStyle controls the tone and formality of translations.
+type TranslationStyle string
+
+const (
+	// StyleFormal uses formal, professional language suitable for official documents.
+	StyleFormal TranslationStyle = "formal"
+	// StyleNeutral uses a neutral, professional tone suitable for general content.
+	StyleNeutral TranslationStyle = "neutral"
+	// StyleCasual uses casual, conversational language suitable for blogs/social media.
+	StyleCasual TranslationStyle = "casual"
+	// StyleMarketing uses persuasive, engaging language for promotional content.
+	StyleMarketing TranslationStyle = "marketing"
+	// StyleTechnical uses precise, technical language for documentation.
+	StyleTechnical TranslationStyle = "technical"
+)
+
 // TextNode represents a translatable unit of content.
 type TextNode struct {
 	ID       string            // Unique identifier (UUID)
@@ -13,10 +29,12 @@ type TextNode struct {
 
 // TranslationConfig holds configuration for the translator.
 type TranslationConfig struct {
-	TargetLang    string   // Target language code (e.g., "es_ES", "ja_JP")
-	SourceLang    string   // Source language code (default: "en")
-	ExcludedTerms []string // Terms to never translate (e.g., ["API", "SDK"])
-	Context       string   // Global context for all translations
+	TargetLang    string            // Target language code (e.g., "es_ES", "ja_JP")
+	SourceLang    string            // Source language code (default: "en")
+	ExcludedTerms []string          // Terms to never translate (e.g., ["API", "SDK"])
+	Context       string            // Global context for all translations
+	Glossary      map[string]string // Preferred translations for specific phrases
+	Style         TranslationStyle  // Translation style/register (default: neutral)
 }
 
 // ProcessedContent is the result of a translation operation.

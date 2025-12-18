@@ -73,7 +73,36 @@ gotlai.NewTranslator("es_ES", provider,
     gotlai.WithProcessor(processor),                // Content processor
     gotlai.WithExcludedTerms([]string{"API"}),      // Terms to never translate
     gotlai.WithContext("Technical documentation"),  // Global context for AI
+    gotlai.WithStyle(gotlai.StyleMarketing),        // Translation style/register
+    gotlai.WithGlossary(map[string]string{          // Preferred translations
+        "on the fly": "al vuelo",
+        "cutting-edge": "de vanguardia",
+    }),
 )
+```
+
+### Translation Styles
+
+Control the tone and formality of translations:
+
+| Style | Description |
+|-------|-------------|
+| `StyleFormal` | Professional language for official documents |
+| `StyleNeutral` | Balanced tone for general content (default) |
+| `StyleCasual` | Conversational language for blogs/social media |
+| `StyleMarketing` | Persuasive language for promotional content |
+| `StyleTechnical` | Precise language for technical documentation |
+
+### Glossary
+
+Provide preferred translations for specific terms to ensure consistency:
+
+```go
+glossary := map[string]string{
+    "on the fly":   "fortløpende",    // Norwegian
+    "cutting-edge": "banebrytende",
+}
+t := gotlai.NewTranslator("nb_NO", provider, gotlai.WithGlossary(glossary))
 ```
 
 ## Caching
